@@ -4,18 +4,22 @@ import constants
 
 from dataprocessor import DataProcessor
 from audioprocessor import AudioProcessor
+from agent import AuscultatorySoundAnalysisAgent
 
 os.environ["OPENAI_API_KEY"] = constants.OPENAI_API_KEY
 
 def main():
     dp = DataProcessor("data.csv")
     df = dp.process_data()
-    print(df.groupby("COVID_test_status").count())
-    idx = [81, 0]
-    for index in idx:
-        file_path = os.path.join(os.getcwd(), "dataset", (df["breathing-deep"][index]).lstrip("/"))
-        print (df["COVID_test_status"][index])
-        if os.path.isfile(file_path):
-            AudioProcessor.show_mel_spectogram(file_path)
+    agent = AuscultatorySoundAnalysisAgent(df)
+    
+    while True:
+        user_input = input("Type a question (or 'exit' to quit): ")
+
+        if user_input.lower() == 'exit':
+            print("Thanks for talking.")
+            break
+    
+        print(agent.run(user_input))
 
 main()

@@ -45,7 +45,11 @@ class AudioProcessor():
     @staticmethod
     def get_audio_file_path(file_path: str):
         if (file_path != None) and (len(file_path) is not 0):
-            return os.path.join(os.getcwd(), "dataset", file_path.lstrip("/"))
+            file_path = os.path.join(os.getcwd(), "dataset", file_path.lstrip("/"))
+            if os.path.isfile(file_path):
+                return file_path
+            else:
+                raise Exception("This path doesn't point to a valid file")
         else:
             raise Exception("File path is empty or doesn't exist")
     

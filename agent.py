@@ -15,13 +15,15 @@ from langchain.chains import ConversationalRetrievalChain
 from langchain.prompts import PromptTemplate
 
 from pandas import DataFrame
+from numpy import array2string
 
 from audioprocessor import AudioProcessor
 
 @tool
 def tool_get_mel_spectogram(file_path: str):
     """returns a mel spectogram for the given full file path"""
-    return AudioProcessor.get_mel_spectogram(file_path)
+    spectogram = AudioProcessor.get_mel_spectogram(file_path)
+    return array2string(spectogram, separator=",")
 
 @tool
 def tool_get_audio_file_path(file_path: str):
@@ -49,6 +51,7 @@ class AuscultatorySoundAnalysisAgent:
 
     # Function to use train langchain model on the dataset returned by the data processor process_data function
     def create_agent(self) -> AgentExecutor:
+        print("Creating agent...")
         db = self.create_embeddings()
         llm = OpenAI(temperature=0.7)
         prompt = ZeroShotAgent.create_prompt(
@@ -57,6 +60,7 @@ class AuscultatorySoundAnalysisAgent:
             input_variables=["user_input", "chat_history"]
         )
         
+        print("Creating the conversational retrieval chain...")
         chain = ConversationalRetrievalChain.from_llm(
             llm=llm,
             retriever=db.as_retriever(),
@@ -81,6 +85,7 @@ class AuscultatorySoundAnalysisAgent:
 
     # Create embeddings for the dataset and cache them using the FAISS vectorstore
     def create_embeddings(self) -> FAISS:
+        print("Creating embeddings...")
         underlying_embeddings = OpenAIEmbeddings()
 
         # Instantiate a cache backed embeddings object
@@ -92,11 +97,19 @@ class AuscultatorySoundAnalysisAgent:
         )
 
         # Load the dataframe into the vectorstore after splitting into chunks and store it into a FAISS vectorstore
-        raw_data = DataFrameLoader(self.df, page_content_column="Mel_Spectogram-Covid_Test_Status").load()
-        splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=10)
-        documents = splitter.split(raw_data)
-        db = FAISS().from_documents(documents, cached_embedder)
-
+        raw_data = DataFrameLoader(self.data_frame, page_content_column="Mel_Spectogram-Covid_Test_Status").load()
+        
+        if (raw_data == None) or (len(raw_data) == 0):
+            raise Exception("No data found. Cannot create embeddings for an empty dataframe")
+        
+        splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=10)
+        documents = splitter.create_documents(raw_data)
+        
+        if documents.is_empty():
+            raise Exception("Received empty documents. Cannot instantiate the FAISS vectorstore with empty documents")
+        
+        db = FAISS.from_documents(documents, cached_embedder)
+        print("Embeddings created")
         return db
 
     def run(self, query: str):

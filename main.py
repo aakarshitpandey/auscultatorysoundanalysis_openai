@@ -14,7 +14,7 @@ def main():
     agent = AuscultatorySoundAnalysisAgent(df)
     
     while True:
-        user_input = input("Type a question (or 'exit' to quit): ")
+        user_input = input("Type a question (or 'exit' to quit): \n")
 
         if user_input.lower() == 'exit':
             print("Thanks for talking.")

@@ -44,7 +44,7 @@ class AudioProcessor():
     
     @staticmethod
     def get_audio_file_path(file_path: str):
-        if (file_path != None) and (len(file_path) is not 0):
+        if (file_path) and not (file_path.isspace()):
             file_path = os.path.join(os.getcwd(), "dataset", file_path.lstrip("/"))
             if os.path.isfile(file_path):
                 return file_path

@@ -28,13 +28,6 @@ class DataProcessor:
         })
 
         return df
-
-    # Read the data from the csv file and clean it
-    def process_data(self) -> pd.DataFrame:
-        print("Processing data...")
-        df = pd.read_csv(self.file_name, encoding="ISO-8859-1")
-        df = self.clean_data(df)
-        return self.GenerateMelSpectogramForDataSet(df)
     
     # Generate Mel Spectogram for the entire dataset and return a new dataframe with the mel spectogram array and the covid status
     def GenerateMelSpectogramForDataSet(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -54,3 +47,28 @@ class DataProcessor:
         df.drop(columns=[column for column in df.columns if column not in ["COVID_test_status", "mel_spectogram"]], inplace=True)
         print(df.head())
         return df
+    
+    # Take df which has COVID_test_status and mel_spectogram columns and return a new dataframe with a single column serializing the two columns into one
+    def UnifyColumnsForDataSet(self, df:pd.DataFrame) -> pd.DataFrame:
+        print("Unifying columns for the dataset...")
+        unified_column_name = "COVID_test_status_mel_spectogram"
+        for index, row in df.iterrows():
+            try:
+                df.at[index, unified_column_name] = "COVID_test_status: " + str(row["COVID_test_status"]) + ", " + "mel_spectogram: " + row["mel_spectogram"]
+            except Exception as e:
+                # Drop the row if the file path is invalid
+                print(e)
+                df.drop(index, inplace=True)
+        
+        # Drop all columns except for the unified columns. This df will be fed to the model
+        df.drop(columns=[column for column in df.columns if column not in [unified_column_name]], inplace=True)
+        print(df.head())
+        return df
+    
+    # Read the data from the csv file and clean it
+    def process_data(self) -> pd.DataFrame:
+        print("Processing data...")
+        df = pd.read_csv(self.file_name, encoding="ISO-8859-1")
+        df = self.clean_data(df)
+        df = self.GenerateMelSpectogramForDataSet(df)
+        return self.UnifyColumnsForDataSet(df)

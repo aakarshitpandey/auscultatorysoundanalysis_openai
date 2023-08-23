@@ -23,7 +23,7 @@ from audioprocessor import AudioProcessor
 def tool_get_mel_spectogram(file_path: str):
     """returns a mel spectogram for the given full file path"""
     spectogram = AudioProcessor.get_mel_spectogram(file_path)
-    return array2string(spectogram, separator=",")
+    return "mel_spectogram: " + array2string(spectogram, separator=",")
 
 @tool
 def tool_get_audio_file_path(file_path: str):
@@ -97,16 +97,11 @@ class AuscultatorySoundAnalysisAgent:
         )
 
         # Load the dataframe into the vectorstore after splitting into chunks and store it into a FAISS vectorstore
-        raw_data = DataFrameLoader(self.data_frame, page_content_column="Mel_Spectogram-Covid_Test_Status").load()
-        
-        if (raw_data == None) or (len(raw_data) == 0):
-            raise Exception("No data found. Cannot create embeddings for an empty dataframe")
-        
         splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=10)
-        documents = splitter.create_documents(raw_data)
+        documents = DataFrameLoader(data_frame=self.data_frame, page_content_column="COVID_test_status_mel_spectogram").load_and_split(splitter)
         
-        if documents.is_empty():
-            raise Exception("Received empty documents. Cannot instantiate the FAISS vectorstore with empty documents")
+        if (documents == None) or (len(documents) == 0):
+            raise Exception("No data found. Cannot create embeddings for an empty dataframe")
         
         db = FAISS.from_documents(documents, cached_embedder)
         print("Embeddings created")

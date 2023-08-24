@@ -15,7 +15,7 @@ from langchain.chains import ConversationalRetrievalChain, LLMChain
 from langchain.prompts import PromptTemplate, ChatPromptTemplate, MessagesPlaceholder, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 
 from pandas import DataFrame
-from numpy import array2string
+from numpy import array2string, Inf as inf
 
 from audioprocessor import AudioProcessor
 
@@ -23,7 +23,7 @@ from audioprocessor import AudioProcessor
 def tool_get_mel_spectogram(file_path: str):
     """returns a mel spectogram for the given full file path"""
     spectogram = AudioProcessor.get_mel_spectogram(file_path)
-    return "mel_spectogram: " + array2string(spectogram, separator=",")
+    return "mel_spectogram: " + array2string(spectogram, separator=",", threshold=inf)
 
 @tool
 def tool_get_audio_file_path(file_path: str):

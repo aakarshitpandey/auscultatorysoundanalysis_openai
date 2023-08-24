@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 
-from numpy import array2string
+from numpy import array2string, Inf as inf
 from audioprocessor import AudioProcessor
 
 class DataProcessor:
@@ -37,7 +37,7 @@ class DataProcessor:
             try: 
                 file_path = AudioProcessor.get_audio_file_path(row["breathing-deep"])
                 spectogram = AudioProcessor.get_mel_spectogram(file_path)
-                serialized_spectogram = array2string(spectogram, separator=",")
+                serialized_spectogram = array2string(spectogram, separator=",", threshold=inf)
                 df.at[index, "mel_spectogram"] = serialized_spectogram
             except Exception as e:
                 # Drop the row if the file path is invalid

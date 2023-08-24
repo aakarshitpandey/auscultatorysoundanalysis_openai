@@ -27,6 +27,18 @@ class DataProcessor:
             "positive_asymp": 1.0,
         })
 
+        # Iterate through the dataset and drop a row with covid_test_status 0.0 after we have had 150 rows covid_test_status 0.0
+        # This has been done to balance the dataset
+        covid_negative_count = 0
+        for index, row in df.iterrows():
+            try:
+                if (row["COVID_test_status"] == 0.0):
+                    covid_negative_count += 1
+                    if (covid_negative_count > 150):
+                        df.drop(index, inplace=True)
+            except Exception as e:
+                df.drop(index, inplace=True)
+
         return df
     
     # Generate Mel Spectogram for the entire dataset and return a new dataframe with the mel spectogram array and the covid status
@@ -37,7 +49,7 @@ class DataProcessor:
             try: 
                 file_path = AudioProcessor.get_audio_file_path(row["breathing-deep"])
                 spectogram = AudioProcessor.get_mel_spectogram(file_path)
-                serialized_spectogram = array2string(spectogram, separator=",", threshold=inf)
+                serialized_spectogram = array2string(spectogram, separator=",")
                 df.at[index, "mel_spectogram"] = serialized_spectogram
             except Exception as e:
                 # Drop the row if the file path is invalid

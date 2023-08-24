@@ -12,7 +12,7 @@ from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import FAISS
 from langchain.chains import ConversationalRetrievalChain, LLMChain
-from langchain.prompts import PromptTemplate
+from langchain.prompts import PromptTemplate, ChatPromptTemplate, MessagesPlaceholder, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 
 from pandas import DataFrame
 from numpy import array2string
@@ -85,6 +85,8 @@ class AuscultatorySoundAnalysisAgent:
             combine_docs_chain_kwargs=dict(prompt=prompt)
         )
 
+        chatbot_llm_chain= self.create_chatbot_chain_with_memory(llm=llm, memory=ConversationBufferMemory(memory_key="chat_history", return_messages=True))
+
         tools.append(
             Tool(
                 name="Covid test status from melspectogram",
@@ -93,10 +95,39 @@ class AuscultatorySoundAnalysisAgent:
             )
         )
 
+        tools.append(
+            Tool(
+                name="Chatbot",
+                func=chatbot_llm_chain.run,
+                description="useful for answering conversational questions from the user which do not involve getting the covid test status from a mel spectogram"
+            )
+        )
+
+        # agent = ZeroShotAgent(llm_chain=chatbot_llm_chain, tools=tools, verbose=True)
+        # return AgentExecutor.from_agent_and_tools(agent=agent, tools=tools, verbose=True, memory=chatbot_memory)
+    
         return initialize_agent(tools=tools, llm=llm, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, verbose=True)
+    
         # llm_chain = LLMChain(llm=llm, prompt=prompt)
         # agent = ZeroShotAgent(llm_chain=llm_chain, tools=tools, verbose=True)
         # return AgentExecutor.from_agent_and_tools(agent=agent, tools=tools, verbose=True, memory=memory)
+
+    def create_chatbot_chain_with_memory(self, llm: OpenAI, memory: ConversationBufferMemory) -> LLMChain:
+        print("Creating chatbot chain...")
+        prompt_text = """
+            You are nice chatbot having a conversation with a human. You are given a question. You have to answer it.
+            In addition to answering all the regular questions, you specialize in analyzing the auscultatory (respiratory) breathing sounds of a patient and predicting whether the patient has COVID-19 or not.
+            For that you have access to a set of tools and data which are provided to you.
+        """
+        prompt = ChatPromptTemplate(messages=[
+                    SystemMessagePromptTemplate.from_template(prompt_text),
+                    MessagesPlaceholder(variable_name="chat_history"),
+                    HumanMessagePromptTemplate.from_template("{question}")
+                ]
+            )
+        conversation = LLMChain(llm=llm, prompt=prompt, memory=memory, verbose=True)
+        return conversation
+
 
     # Create embeddings for the dataset and cache them using the FAISS vectorstore
     def create_embeddings(self) -> FAISS:

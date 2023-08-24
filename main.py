@@ -19,7 +19,10 @@ def main():
         if user_input.lower() == 'exit':
             print("Thanks for talking.")
             break
-    
-        print(agent.run(user_input))
+
+        try:
+            print(agent.run(user_input))
+        except Exception as e:
+            print(e)
 
 main()

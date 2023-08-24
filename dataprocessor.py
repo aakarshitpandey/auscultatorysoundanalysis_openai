@@ -63,11 +63,22 @@ class DataProcessor:
         # Drop all columns except for the unified columns. This df will be fed to the model
         df.drop(columns=[column for column in df.columns if column not in [unified_column_name]], inplace=True)
         print(df.head())
+
+        # Save the processed data to a csv file
+        df.to_csv(os.path.join(os.getcwd(), "dataset", "processed_data.csv"), index=False, encoding="utf-8")
+
         return df
     
     # Read the data from the csv file and clean it
     def process_data(self) -> pd.DataFrame:
         print("Processing data...")
+
+        # Check if the data processing has already been done
+        processed_data_file_path = os.path.join(os.getcwd(), "dataset", "processed_data.csv")
+        if (os.path.exists(processed_data_file_path)):
+            return pd.read_csv(processed_data_file_path, encoding="utf-8")
+        
+        # Read the data from the csv file and clean it
         df = pd.read_csv(self.file_name, encoding="ISO-8859-1")
         df = self.clean_data(df)
         df = self.GenerateMelSpectogramForDataSet(df)

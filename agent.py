@@ -1,7 +1,7 @@
 # Description: This file contains the training code for the model
 from os import path, getcwd
 
-from langchain.agents import AgentExecutor, ZeroShotAgent
+from langchain.agents import AgentExecutor, ZeroShotAgent, initialize_agent, AgentType
 from langchain.document_loaders import DataFrameLoader
 from langchain.llms import OpenAI
 from langchain.tools import tool, Tool
@@ -11,7 +11,7 @@ from langchain.embeddings import OpenAIEmbeddings, CacheBackedEmbeddings
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import FAISS
-from langchain.chains import ConversationalRetrievalChain
+from langchain.chains import ConversationalRetrievalChain, LLMChain
 from langchain.prompts import PromptTemplate
 
 from pandas import DataFrame
@@ -36,11 +36,14 @@ You are given a relative path to an audio file. You have to use it to generate a
 'COVID_Test_Status' of 0.0 means they do not have it. Value of 1.0 means the have COVID-19. You can use the following tools and data to help you with your task:
 1) tool_get_audio_file_path - gets the full file path
 2) tool_get_mel_spectogram - gets the mel spectogram for the given full file path
-3) df - the dataframe containing the mel spectogram training data and the corresponding COVID_Test_Status"""
+3) df - the dataframe containing the mel spectogram training data and the corresponding COVID_Test_Status
+4) A conversationalqachain built on the embeddings of a dataset which has the covid test status mapping to a melspectogram.\n
+The user will most likely give you a relative file path. If the path looks like "/data/test/20200803/J5QGEKLK87d2dASH0umWBDzJ12P2/breathing-deep.wav" it is a relative path. If it is starting with D:/ or C:/ it is a full file path. You can use the tool_get_audio_file_path tool to get the full file path from the relative file path.
+Context: {context}\n"""
 
-suffix_prompt = """
+suffix_prompt = """Begin!"
 {chat_history}
-Question: {user_input}
+Question: {question}
 """
 
 class AuscultatorySoundAnalysisAgent:
@@ -53,19 +56,7 @@ class AuscultatorySoundAnalysisAgent:
     def create_agent(self) -> AgentExecutor:
         print("Creating agent...")
         db = self.create_embeddings()
-        llm = OpenAI(temperature=0.7)
-        prompt = ZeroShotAgent.create_prompt(
-            prefix=prefix_prompt,
-            suffix=suffix_prompt,
-            input_variables=["user_input", "chat_history"]
-        )
-        
-        print("Creating the conversational retrieval chain...")
-        chain = ConversationalRetrievalChain.from_llm(
-            llm=llm,
-            retriever=db.as_retriever(),
-            prompt=prompt,
-        )
+        llm = OpenAI(temperature=0.5)
 
         # tools for helping the agent generate the mel spectogram
         tools = [
@@ -75,13 +66,37 @@ class AuscultatorySoundAnalysisAgent:
                 description="useful for when you need to get a mel_spectogram for an audio file"
             ),
             Tool(
-                name="Get full file path from a relative file path",
+                name="Get full system file path from a relative file path",
                 func=tool_get_audio_file_path,
-                description="useful for when you need to get the full file path for an audio file"
-            )]
-        
-        agent = ZeroShotAgent(llm_chain=chain, tools=tools, verbose=True, name="Auscultatory Sound Analysis Agent")
-        return AgentExecutor.from_agent_and_tools(agent=agent, tools=tools, verbose=True, memory=ConversationBufferMemory(memory_key="chat_history"))
+                description="useful for when you need to get the full file path from a relative file path for an audio file"
+            )
+        ]
+
+        prompt = PromptTemplate.from_template(input_variable=["context", "chat_history", "question"], template=prefix_prompt + suffix_prompt)
+
+        memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+
+        print("Creating the conversational retrieval chain...")
+        chain = ConversationalRetrievalChain.from_llm(
+            llm=llm,
+            verbose=True,
+            retriever=db.as_retriever(),
+            memory=memory,
+            combine_docs_chain_kwargs=dict(prompt=prompt)
+        )
+
+        tools.append(
+            Tool(
+                name="Covid test status from melspectogram",
+                func=chain.run,
+                description="useful for when you need to get the covid test status from a mel spectogram"
+            )
+        )
+
+        return initialize_agent(tools=tools, llm=llm, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, verbose=True)
+        # llm_chain = LLMChain(llm=llm, prompt=prompt)
+        # agent = ZeroShotAgent(llm_chain=llm_chain, tools=tools, verbose=True)
+        # return AgentExecutor.from_agent_and_tools(agent=agent, tools=tools, verbose=True, memory=memory)
 
     # Create embeddings for the dataset and cache them using the FAISS vectorstore
     def create_embeddings(self) -> FAISS:

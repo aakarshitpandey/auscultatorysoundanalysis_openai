@@ -102,16 +102,9 @@ class AuscultatorySoundAnalysisAgent:
                 description="useful for answering conversational questions from the user which do not involve getting the covid test status from a mel spectogram"
             )
         )
-
-        # agent = ZeroShotAgent(llm_chain=chatbot_llm_chain, tools=tools, verbose=True)
-        # return AgentExecutor.from_agent_and_tools(agent=agent, tools=tools, verbose=True, memory=chatbot_memory)
     
         return initialize_agent(tools=tools, llm=llm, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, verbose=True)
     
-        # llm_chain = LLMChain(llm=llm, prompt=prompt)
-        # agent = ZeroShotAgent(llm_chain=llm_chain, tools=tools, verbose=True)
-        # return AgentExecutor.from_agent_and_tools(agent=agent, tools=tools, verbose=True, memory=memory)
-
     def create_chatbot_chain_with_memory(self, llm: OpenAI, memory: ConversationBufferMemory) -> LLMChain:
         print("Creating chatbot chain...")
         prompt_text = """

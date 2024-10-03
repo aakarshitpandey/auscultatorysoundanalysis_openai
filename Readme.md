@@ -6,7 +6,7 @@ This is a chatbot service which leverages OpenAI to try and predict if a person 
 
 ## Architecture
 
-This service is leverages the OpenAI tools and the LangChain framework to build a conversational agent (chatbot) which is trained on a dataset which contains a bunch of audio files (.wav) with the breathing sounds of patients and the corresponding COVID test status (1 -- they have covid, 0 -- they don't have covid)
+This service is leverages the OpenAI tools and the LangChain framework to build a conversational agent (chatbot) which uses a few-shot learning approach on the LLM by leveraging a dataset which contains a bunch of audio files (.wav) with the breathing sounds of patients and the corresponding COVID test status (1 -- they have covid, 0 -- they don't have covid)
 
 ### Audio Processor
 

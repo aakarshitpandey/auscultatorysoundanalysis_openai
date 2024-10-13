@@ -23,7 +23,7 @@ from audioprocessor import AudioProcessor
 def tool_get_mel_spectogram(file_path: str):
     """returns a mel spectogram for the given full file path"""
     spectogram = AudioProcessor.get_mel_spectogram(file_path)
-    return "mel_spectogram: " + array2string(spectogram, separator=",", threshold=inf)
+    return "mel_spectogram: " + array2string(spectogram, separator=",")
 
 @tool
 def tool_get_audio_file_path(file_path: str):
